@@ -8,6 +8,7 @@ import (
 
 	"github.com/couchbaselabs/logg"
 	"github.com/tleyden/open-ocr"
+	"github.com/rs/cors"
 )
 
 // This assumes that there is a worker running
@@ -42,7 +43,8 @@ func main() {
 		fmt.Fprintf(w, text)
 	})
 
-	http.Handle("/ocr", ocrworker.NewOcrHttpHandler(rabbitConfig))
+	// http.Handle("/ocr", ocrworker.NewOcrHttpHandler(rabbitConfig))
+  http.Handle("/ocr", cors.Default().Handler(ocrworker.NewOcrHttpHandler(rabbitConfig)))
 
 	http.Handle("/ocr-file-upload", ocrworker.NewOcrHttpMultipartHandler(rabbitConfig))
 
