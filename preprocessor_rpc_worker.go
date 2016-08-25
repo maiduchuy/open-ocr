@@ -28,6 +28,7 @@ func NewPreprocessorRpcWorker(rc RabbitConfig, preprocessor string) (*Preprocess
 	preprocessorMap := make(map[string]Preprocessor)
 	preprocessorMap[PREPROCESSOR_STROKE_WIDTH_TRANSFORM] = StrokeWidthTransformer{}
 	preprocessorMap[PREPROCESSOR_IDENTITY] = IdentityPreprocessor{}
+	preprocessorMap[PREPROCESSOR_IMGPROC] = ImageProcessing{}
 
 	_, ok := preprocessorMap[preprocessor]
 	if !ok {
