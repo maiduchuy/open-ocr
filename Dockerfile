@@ -5,6 +5,7 @@ RUN apt-get update
 RUN apt-get -q -y install build-essential
 RUN apt-get -q -y install cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev wget
 RUN apt-get -q -y install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
+RUN apt-get -q -y install golang
 
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python get-pip.py
