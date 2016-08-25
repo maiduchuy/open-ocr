@@ -1,14 +1,5 @@
 package ocrworker
 
-import (
-  "fmt"
-  "io/ioutil"
-  "os"
-  "os/exec"
-
-  "github.com/couchbaselabs/logg"
-)
-
 type ImageProcessing struct {
 }
 
@@ -63,6 +54,5 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
 
   // ocrRequest.ImgBytes = resultBytes
 
-  // return nil
-
+  return nil
 }
