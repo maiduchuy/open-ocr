@@ -3,9 +3,6 @@ package ocrworker
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
 
 	"github.com/couchbaselabs/logg"
 	"github.com/streadway/amqp"

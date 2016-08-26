@@ -11,15 +11,15 @@ services:
       RABBITMQ_DEFAULT_USER: "admin"
       RABBITMQ_DEFAULT_PASS: "Phaish9ohbaidei6oole"
 
-  # Start transformation worker
-  strokewidthtransform:
-    image: tleyden5iwx/open-ocr-preprocessor
-    volumes:
-      - ./scripts/:/opt/open-ocr/
-    dns: ["8.8.8.8"]
-    depends_on:
-      - rabbitmq
-    command: "/opt/open-ocr/open-ocr-preprocessor -amqp_uri amqp://admin:Phaish9ohbaidei6oole@rabbitmq/ -preprocessor stroke-width-transform"
+# Start transformation worker
+strokewidthtransform:
+  image: tleyden5iwx/open-ocr-preprocessor
+  volumes: 
+    - ./scripts/:/opt/open-ocr/
+  dns: ["8.8.8.8"]
+  links:
+    - rabbitmq
+  command: "/opt/open-ocr/open-ocr-preprocessor -amqp_uri amqp://admin:Phaish9ohbaidei6oole@rabbitmq/ -preprocessor img-proc"
 
 # Start OCR worker
 openocrworker:
