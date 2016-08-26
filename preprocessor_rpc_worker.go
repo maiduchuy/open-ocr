@@ -178,53 +178,6 @@ func (w *PreprocessorRpcWorker) preprocessImage(ocrRequest *OcrRequest) error {
 		return err
 	}
 	return nil
-
-}
-
-func (w *PreprocessorRpcWorker) strokeWidthTransform(ocrRequest *OcrRequest) error {
-
-	// write bytes to a temp file
-
-	tmpFileNameInput, err := createTempFileName()
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpFileNameInput)
-
-	tmpFileNameOutput, err := createTempFileName()
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpFileNameOutput)
-
-	err = saveBytesToFileName(ocrRequest.ImgBytes, tmpFileNameInput)
-	if err != nil {
-		return err
-	}
-
-	// run DecodeText binary on it (if not in path, print warning and do nothing)
-	darkOnLightSetting := "1" // todo: this should be passed as a param.
-	out, err := exec.Command(
-		"DetectText",
-		tmpFileNameInput,
-		tmpFileNameOutput,
-		darkOnLightSetting,
-	).CombinedOutput()
-	if err != nil {
-		logg.LogFatal("Error running command: %s.  out: %s", err, out)
-	}
-	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out))
-
-	// read bytes from output file into ocrRequest.ImgBytes
-	resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)
-	if err != nil {
-		return err
-	}
-
-	ocrRequest.ImgBytes = resultBytes
-
-	return nil
-
 }
 
 func (w *PreprocessorRpcWorker) handleDelivery(d amqp.Delivery) error {
