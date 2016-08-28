@@ -13,7 +13,7 @@ services:
 
 # Start transformation worker
 strokewidthtransform:
-  image: tleyden5iwx/open-ocr-preprocessor
+  image: maiduchuy/img-proc
   volumes: 
     - ./scripts/:/opt/open-ocr/
   dns: ["8.8.8.8"]
