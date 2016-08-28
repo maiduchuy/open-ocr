@@ -62,7 +62,7 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
 
   out, err := exec.Command(
     "python",
-    "resizeimg.py",
+    "/opt/go/src/github.com/maiduchuy/open-ocr/resizeimg.py",
     tmpFileNameInput,
     tmpFileNameOutput,
   ).CombinedOutput()
