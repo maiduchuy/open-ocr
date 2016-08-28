@@ -48,6 +48,9 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
     "Current dir is %s",
     dir,
   )
+  if errtest != nil {
+    logg.LogFatal("Error running command: %s.  out: %s", errtest, dir)
+  }
 
   out1, err1 := exec.Command(
     "ls",
