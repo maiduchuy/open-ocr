@@ -49,13 +49,13 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
     dir,
   )
 
-  out, err := exec.Command(
-    "ls"
+  out1, err1 := exec.Command(
+    "ls",
   ).CombinedOutput()
   if err != nil {
-    logg.LogFatal("Error running command: %s.  out: %s", err, out)
+    logg.LogFatal("Error running command: %s.  out: %s", err1, out1)
   }
-  logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out))
+  logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out1))
 
   out, err := exec.Command(
     "python",
