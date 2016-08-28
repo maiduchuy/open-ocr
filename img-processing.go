@@ -2,7 +2,9 @@ package ocrworker
 
 import (
   "fmt"
+  "io/ioutil"
   "os"
+  "os/exec"
 
   "github.com/couchbaselabs/logg"
 )
@@ -35,11 +37,30 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
 
   logg.LogTo(
     "PREPROCESSOR_WORKER",
-    "DetectText on %s -> %s with %s",
+    "Image Processing on %s -> %s",
     tmpFileNameInput,
     tmpFileNameOutput,
-    5558,
   )
+
+  out, err := exec.Command(
+    "python",
+    "resizeimg.py",
+    tmpFileNameInput,
+    tmpFileNameOutput,
+    darkOnLightSetting,
+  ).CombinedOutput()
+  if err != nil {
+    logg.LogFatal("Error running command: %s.  out: %s", err, out)
+  }
+  logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out))
+
+  // read bytes from output file into ocrRequest.ImgBytes
+  resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)
+  if err != nil {
+    return err
+  }
+
+  ocrRequest.ImgBytes = resultBytes
 
   return nil
 }
