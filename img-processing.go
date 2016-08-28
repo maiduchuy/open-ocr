@@ -47,7 +47,6 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
     "resizeimg.py",
     tmpFileNameInput,
     tmpFileNameOutput,
-    darkOnLightSetting,
   ).CombinedOutput()
   if err != nil {
     logg.LogFatal("Error running command: %s.  out: %s", err, out)
