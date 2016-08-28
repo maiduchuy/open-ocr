@@ -42,6 +42,21 @@ func (s ImageProcessing) preprocess(ocrRequest *OcrRequest) error {
     tmpFileNameOutput,
   )
 
+  dir, errtest := os.Getwd()
+  logg.LogTo(
+    "PREPROCESSOR_WORKER",
+    "Current dir is %s",
+    dir,
+  )
+
+  out, err := exec.Command(
+    "ls"
+  ).CombinedOutput()
+  if err != nil {
+    logg.LogFatal("Error running command: %s.  out: %s", err, out)
+  }
+  logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out))
+
   out, err := exec.Command(
     "python",
     "resizeimg.py",
