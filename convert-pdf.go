@@ -43,13 +43,34 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	)
 
 	tmpDir := createTempDir()
+	tmpDirFiles := fmt.Sprintf("%s/%s_%03d.pdf", tmpDir, ocrRequest.Name)
 	logg.LogTo(
 		"PREPROCESSOR_WORKER",
 		"Temp dir is: %s",
 		tmpDir,
 	)
+	logg.LogTo(
+		"PREPROCESSOR_WORKER",
+		"Temp dir files is: %s",
+		tmpDirFiles,
+	)
 
-	out, err := exec.Command(
+	out_pdftk, err_pdftk := exec.Command(
+		"pdftk",
+		tmpFileNameInput,
+		"burst",
+		"dont_ask",
+		"output",
+		tmpDirFiles,
+	).CombinedOutput()
+	if err != nil {
+		logg.LogFatal("Error running command: %s.  out: %s", err_pdftk, out_pdftk)
+	}
+	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_pdftk))
+
+	defer os.RemoveAll(tmpDir)
+
+	out_imagemagick, err_imagemagick := exec.Command(
 		"convert",
 		"-density",
 		"300",
@@ -61,9 +82,9 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 		tmpFileNameOutput,
 	).CombinedOutput()
 	if err != nil {
-		logg.LogFatal("Error running command: %s.  out: %s", err, out)
+		logg.LogFatal("Error running command: %s.  out: %s", err_imagemagick, out_imagemagick)
 	}
-	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out))
+	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_imagemagick))
 
 	// read bytes from output file into ocrRequest.ImgBytes
 	resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)

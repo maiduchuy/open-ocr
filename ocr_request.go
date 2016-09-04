@@ -1,6 +1,10 @@
 package ocrworker
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+	"regexp"
+)
 
 type OcrRequest struct {
 	ImgUrl            string                 `json:"img_url"`
@@ -38,7 +42,10 @@ func (ocrRequest *OcrRequest) downloadImgUrl() error {
 		return err
 	}
 	ocrRequest.ImgBytes = bytes
-	ocrRequest.Name = ocrRequest.ImgUrl
+	u, _ := url.Parse(ocrRequest.ImgUrl)
+	path := u.Path
+	reg := regexp.MustCompile("(^/.*?_|\\..{3})")
+	ocrRequest.Name = reg.ReplaceAllString(path, "")
 	ocrRequest.ImgUrl = ""
 	return nil
 }

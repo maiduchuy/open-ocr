@@ -3,11 +3,9 @@ package ocrworker
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -128,17 +126,12 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 }
 
 func (t TesseractEngine) tmpFileFromImageBytes(imgBytes []byte, name string) (string, error) {
-	u, err := url.Parse(name)
-
-	path := u.Path
-	reg := regexp.MustCompile("(^/.*?_|\\..{3})")
-	extractedName := reg.ReplaceAllString(path, "")
-	tmpFileName := filepath.Join(os.TempDir(), extractedName)
+	tmpFileName := filepath.Join(os.TempDir(), name)
 	logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
 
 	// we have to write the contents of the image url to a temp
 	// file, because the leptonica lib can't seem to handle byte arrays
-	err = saveBytesToFileName(imgBytes, tmpFileName)
+	err := saveBytesToFileName(imgBytes, tmpFileName)
 	if err != nil {
 		return "", err
 	}
