@@ -9,15 +9,15 @@ import (
 	"github.com/couchbaselabs/logg"
 )
 
-type StrokeWidthTransformer struct {
+type ConvertPdf struct {
 }
 
-func (s StrokeWidthTransformer) preprocess(ocrRequest *OcrRequest) error {
+func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 
 	// write bytes to a temp file
 
 	tmpFileNameInput, err := createTempFileName()
-	tmpFileNameInput = fmt.Sprintf("%s.png", tmpFileNameInput)
+	tmpFileNameInput = fmt.Sprintf("%s.pdf", tmpFileNameInput)
 	if err != nil {
 		return err
 	}
@@ -35,20 +35,30 @@ func (s StrokeWidthTransformer) preprocess(ocrRequest *OcrRequest) error {
 		return err
 	}
 
-	// run DecodeText binary on it (if not in path, print warning and do nothing)
-	darkOnLightSetting := s.extractDarkOnLightParam(*ocrRequest)
 	logg.LogTo(
 		"PREPROCESSOR_WORKER",
-		"DetectText on %s -> %s with %s",
+		"Convert PDF on %s -> %s",
 		tmpFileNameInput,
 		tmpFileNameOutput,
-		darkOnLightSetting,
 	)
+
+	tmpDir := createTempDir()
+	logg.LogTo(
+		"PREPROCESSOR_WORKER",
+		"Temp dir is: %s",
+		tmpDir,
+	)
+
 	out, err := exec.Command(
-		"DetectText",
+		"convert",
+		"-density",
+		"300",
+		"-depth",
+		"8",
+		"-alpha",
+		"Off",
 		tmpFileNameInput,
 		tmpFileNameOutput,
-		darkOnLightSetting,
 	).CombinedOutput()
 	if err != nil {
 		logg.LogFatal("Error running command: %s.  out: %s", err, out)
@@ -64,26 +74,4 @@ func (s StrokeWidthTransformer) preprocess(ocrRequest *OcrRequest) error {
 	ocrRequest.ImgBytes = resultBytes
 
 	return nil
-
-}
-
-func (s StrokeWidthTransformer) extractDarkOnLightParam(ocrRequest OcrRequest) string {
-
-	logg.LogTo("PREPROCESSOR_WORKER", "extract dark on light param")
-
-	val := "1"
-
-	preprocessorArgs := ocrRequest.PreprocessorArgs
-	swtArgs := preprocessorArgs[PREPROCESSOR_STROKE_WIDTH_TRANSFORM]
-	if swtArgs != nil {
-		swtArg, ok := swtArgs.(string)
-		if ok && (swtArg == "0" || swtArg == "1") {
-			val = swtArg
-		}
-	}
-
-	logg.LogTo("PREPROCESSOR_WORKER", "return val: %s", val)
-
-	return val
-
 }

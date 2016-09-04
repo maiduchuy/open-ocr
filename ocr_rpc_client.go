@@ -22,6 +22,7 @@ type OcrRpcClient struct {
 
 type OcrResult struct {
 	Text string
+	BaseFileName string
 }
 
 func NewOcrRpcClient(rc RabbitConfig) (*OcrRpcClient, error) {

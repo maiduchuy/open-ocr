@@ -3,6 +3,7 @@
 .#*
 \#*\#
 */main
-*/cli-worker
-*/cli-httpd
+*/open-ocr-httpd
+*/open-ocr-preprocessor
+*/open-ocr-worker
 .DS_Store

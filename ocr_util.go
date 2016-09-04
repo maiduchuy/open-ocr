@@ -59,3 +59,7 @@ func createTempFileName() (string, error) {
 	uuidStr := uuidRaw.String()
 	return filepath.Join(tempDir, uuidStr), nil
 }
+
+func createTempDir() (string) {
+	return os.TempDir()
+}

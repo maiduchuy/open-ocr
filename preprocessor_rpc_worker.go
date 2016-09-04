@@ -23,8 +23,7 @@ const preprocessor_tag = "preprocessor" // TODO: should be unique for each worke
 func NewPreprocessorRpcWorker(rc RabbitConfig, preprocessor string) (*PreprocessorRpcWorker, error) {
 
 	preprocessorMap := make(map[string]Preprocessor)
-	preprocessorMap[PREPROCESSOR_STROKE_WIDTH_TRANSFORM] = StrokeWidthTransformer{}
-	preprocessorMap[PREPROCESSOR_IDENTITY] = IdentityPreprocessor{}
+	preprocessorMap[PREPROCESSOR_CONVERTPDF] = ConvertPdf{}
 	preprocessorMap[PREPROCESSOR_IMGPROC] = ImageProcessing{}
 
 	_, ok := preprocessorMap[preprocessor]

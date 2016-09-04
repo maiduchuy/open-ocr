@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/couchbaselabs/logg"
-	"github.com/tleyden/open-ocr"
 	"github.com/rs/cors"
+	"github.com/maiduchuy/open-ocr"
 )
 
 // This assumes that there is a worker running

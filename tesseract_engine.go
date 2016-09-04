@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -100,7 +101,7 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 		if ocrRequest.ImgUrl != "" {
 			return t.tmpFileFromImageUrl(ocrRequest.ImgUrl)
 		} else {
-			return t.tmpFileFromImageBytes(ocrRequest.ImgBytes)
+			return t.tmpFileFromImageBytes(ocrRequest.ImgBytes, ocrRequest.Name)
 		}
 
 	}()
@@ -124,16 +125,20 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 
 }
 
-func (t TesseractEngine) tmpFileFromImageBytes(imgBytes []byte) (string, error) {
+func (t TesseractEngine) tmpFileFromImageBytes(imgBytes []byte, name string) (string, error) {
 
-	tmpFileName, err := createTempFileName()
-	if err != nil {
-		return "", err
-	}
+	logg.LogTo("OCR_TESSERACT", "Test 1: %s", name)
+	tmpFileName := func(url string) string {
+		baseName := filepath.Base(url)
+		extension := filepath.Ext(baseName)
+		baseNameNoExt := url[0 : len(baseName)-len(extension)]
+		return filepath.Join(os.TempDir(), baseNameNoExt)
+	}(name)
+	logg.LogTo("OCR_TESSERACT", "Test 2: %s", tmpFileName)
 
 	// we have to write the contents of the image url to a temp
 	// file, because the leptonica lib can't seem to handle byte arrays
-	err = saveBytesToFileName(imgBytes, tmpFileName)
+	err := saveBytesToFileName(imgBytes, tmpFileName)
 	if err != nil {
 		return "", err
 	}
@@ -144,13 +149,15 @@ func (t TesseractEngine) tmpFileFromImageBytes(imgBytes []byte) (string, error) 
 
 func (t TesseractEngine) tmpFileFromImageUrl(imgUrl string) (string, error) {
 
-	tmpFileName, err := createTempFileName()
-	if err != nil {
-		return "", err
-	}
+	tmpFileName := func(url string) string {
+		baseName := filepath.Base(url)
+		extension := filepath.Ext(baseName)
+		baseNameNoExt := url[0 : len(baseName)-len(extension)]
+		return filepath.Join(os.TempDir(), baseNameNoExt)
+	}(imgUrl)
 	// we have to write the contents of the image url to a temp
 	// file, because the leptonica lib can't seem to handle byte arrays
-	err = saveUrlContentToFileName(imgUrl, tmpFileName)
+	err := saveUrlContentToFileName(imgUrl, tmpFileName)
 	if err != nil {
 		return "", err
 	}
@@ -166,11 +173,11 @@ func (t TesseractEngine) processImageFile(inputFilename string, engineArgs Tesse
 	tmpOutFileBaseName := inputFilename
 
 	// possible file extensions
-	fileExtensions := []string{"txt", "hocr"}
+	fileExtensions := []string{"txt", "hocr", "pdf"}
 
 	// build args array
 	cflags := engineArgs.Export()
-	cmdArgs := []string{inputFilename, tmpOutFileBaseName}
+	cmdArgs := []string{inputFilename, tmpOutFileBaseName, "pdf"}
 	cmdArgs = append(cmdArgs, cflags...)
 	logg.LogTo("OCR_TESSERACT", "cmdArgs: %v", cmdArgs)
 
@@ -193,7 +200,8 @@ func (t TesseractEngine) processImageFile(inputFilename string, engineArgs Tesse
 	}
 
 	return OcrResult{
-		Text: string(outBytes),
+		Text:         string(outBytes),
+		BaseFileName: fmt.Sprintf("%v_ocrd", tmpOutFileBaseName),
 	}, nil
 
 }
