@@ -3,15 +3,15 @@ package ocrworker
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/couchbaselabs/logg"
-	"github.com/streadway/amqp"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/s3"
+	"github.com/streadway/amqp"
 )
 
 type OcrRpcWorker struct {
@@ -156,6 +156,8 @@ func (w *OcrRpcWorker) handle(deliveries <-chan amqp.Delivery, done chan error) 
 			break
 		}
 
+		ocrResult.Text = fmt.Sprintf("https://avid-documents.s3.amazonaws.com/%v.pdf", filepath.Base(ocrResult.BaseFileName))
+
 		err = w.sendRpcResponse(ocrResult, d.ReplyTo, d.CorrelationId)
 		if err != nil {
 			msg := "Error returning ocr result: %v.  Error: %v"
@@ -202,11 +204,11 @@ func (w *OcrRpcWorker) resultForDelivery(d amqp.Delivery) (OcrResult, error) {
 func (w *OcrRpcWorker) uploadToS3(res OcrResult) error {
 
 	auth, err := aws.EnvAuth()
-  if err != nil {
+	if err != nil {
 		logg.LogTo("OCR_WORKER", "%v", err)
 		return err
-  }
-  client := s3.New(auth, aws.USEast)
+	}
+	client := s3.New(auth, aws.USEast)
 
 	filePath := fmt.Sprintf("%v.pdf", filepath.Base(res.BaseFileName))
 
