@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -47,7 +48,6 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	tmpDir, err_tmpdir := createTempDir()
 	if err_tmpdir != nil {
 		logg.LogFatal("Error running command: %s.", err_tmpdir)
-		return err_tmpdir
 	}
 	defer os.RemoveAll(tmpDir)
 
@@ -83,6 +83,8 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 		logg.LogTo("PREPROCESSOR_WORKER", "Path is: %s. Name is: %s.", path, f.Name())
 		matched, _ := regexp.MatchString("^.*?_[0-9]{3}\\.pdf", f.Name())
 		if matched {
+			reg := regexp.MustCompile("(^.*_|\\.pdf)")
+			i, _ := strconv.Atoi(reg.ReplaceAllString(f.Name(), ""))
 			out_imagemagick, err_imagemagick := exec.Command(
 				"convert",
 				"-density",
@@ -95,6 +97,13 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 				tmpFileNameOutput,
 			).CombinedOutput()
 			logg.LogTo("PREPROCESSOR_WORKER", "output: %v, error: %v. ", string(out_imagemagick), err_imagemagick)
+			// read bytes from output file into ocrRequest.ImgBytes
+			resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)
+			if err != nil {
+				return err
+			}
+
+			ocrRequest.ImgFiles[i] = resultBytes
 		}
 		return nil
 	})
@@ -102,13 +111,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 		logg.LogFatal("Error running command: %s.", err_walk)
 	}
 
-	// read bytes from output file into ocrRequest.ImgBytes
-	resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)
-	if err != nil {
-		return err
-	}
-
-	ocrRequest.ImgBytes = resultBytes
+	logg.LogTo("PREPROCESSOR_WORKER", "length: %v", len(ocrRequest.ImgFiles))
 
 	return nil
 }
