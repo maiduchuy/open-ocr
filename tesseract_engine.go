@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -97,21 +99,21 @@ func (t TesseractEngineArgs) Export() []string {
 
 func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error) {
 
-	tmpFileName, err := func() (string, error) {
+	tmpDir, err := func() (string, error) {
 		if ocrRequest.ImgUrl != "" {
 			return t.tmpFileFromImageUrl(ocrRequest.ImgUrl)
 		} else {
-			return t.tmpFileFromImageBytes(ocrRequest.ImgBytes, ocrRequest.Name)
+			return t.tmpFilesFromImageFiles(ocrRequest.ImgFiles, ocrRequest.Name)
 		}
 
 	}()
 
 	if err != nil {
-		logg.LogTo("OCR_TESSERACT", "error getting tmpFileName")
+		logg.LogTo("OCR_TESSERACT", "error getting tmpDir")
 		return OcrResult{}, err
 	}
 
-	defer os.Remove(tmpFileName)
+	defer os.RemoveAll(tmpDir)
 
 	engineArgs, err := NewTesseractEngineArgs(ocrRequest)
 	if err != nil {
@@ -119,25 +121,44 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 		return OcrResult{}, err
 	}
 
-	ocrResult, err := t.processImageFile(tmpFileName, *engineArgs)
+	ocrResult, err := t.processImageFile(tmpDir, *engineArgs, ocrRequest.Name)
 
 	return ocrResult, err
 
 }
 
-func (t TesseractEngine) tmpFileFromImageBytes(imgBytes []byte, name string) (string, error) {
-	tmpFileName := filepath.Join(os.TempDir(), name)
-	logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
+// func (t TesseractEngine) tmpFileFromImageBytes(ImgFiles [][]byte, name string) (string, error) {
+// 	tmpFileName := filepath.Join(os.TempDir(), name)
+// 	logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
 
-	// we have to write the contents of the image url to a temp
-	// file, because the leptonica lib can't seem to handle byte arrays
-	err := saveBytesToFileName(imgBytes, tmpFileName)
-	if err != nil {
-		return "", err
+// 	// we have to write the contents of the image url to a temp
+// 	// file, because the leptonica lib can't seem to handle byte arrays
+// 	err := saveBytesToFileName(ImgFiles, tmpFileName)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return tmpFileName, nil
+
+// }
+
+func (t TesseractEngine) tmpFilesFromImageFiles(ImgFiles [][]byte, name string) (string, error) {
+	tmpDir, _ := ioutil.TempDir(os.TempDir(), "pages-")
+	for index, element := range ImgFiles {
+	// index is the index where we are
+	// element is the element from someSlice for where we are
+		tmpFileName := filepath.Join(tmpDir, name + "_" + strconv.Itoa(index))
+		logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
+
+		// we have to write the contents of the image url to a temp
+		// file, because the leptonica lib can't seem to handle byte arrays
+		err := saveBytesToFileName(element, tmpFileName)
+		if err != nil {
+			return "", err
+		}
 	}
 
-	return tmpFileName, nil
-
+	return tmpDir, nil
 }
 
 func (t TesseractEngine) tmpFileFromImageUrl(imgUrl string) (string, error) {
@@ -159,42 +180,54 @@ func (t TesseractEngine) tmpFileFromImageUrl(imgUrl string) (string, error) {
 
 }
 
-func (t TesseractEngine) processImageFile(inputFilename string, engineArgs TesseractEngineArgs) (OcrResult, error) {
+func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractEngineArgs, name string) (OcrResult, error) {
 
-	// if the input filename is /tmp/ocrimage, set the output file basename
-	// to /tmp/ocrimage as well, which will produce /tmp/ocrimage.txt output
-	tmpOutFileBaseName := inputFilename
+	tmpDirOut, _ := ioutil.TempDir(os.TempDir(), "pages-")
 
 	// possible file extensions
-	fileExtensions := []string{"txt", "hocr", "pdf"}
+	// fileExtensions := []string{"pdf"}
 
 	// build args array
 	cflags := engineArgs.Export()
-	cmdArgs := []string{inputFilename, tmpOutFileBaseName, "pdf"}
-	cmdArgs = append(cmdArgs, cflags...)
-	logg.LogTo("OCR_TESSERACT", "cmdArgs: %v", cmdArgs)
 
-	// exec tesseract
-	cmd := exec.Command("tesseract", cmdArgs...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logg.LogTo("OCR_TESSERACT", "Error exec tesseract: %v %v", err, string(output))
-		return OcrResult{}, err
+	err_walk := filepath.Walk(tmpDirIn, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			logg.LogFatal("Error running command: %s.", err)
+		}
+		logg.LogTo("OCR_TESSERACT", "Path is: %s. Name is: %s.", path, f.Name())
+		matched, _ := regexp.MatchString("^.*?_[0-9]*?$", f.Name())
+		if matched {
+			tmpFileOut := filepath.Join(tmpDirOut, f.Name())
+			cmdArgs := []string{path, tmpFileOut, "pdf"}
+			cmdArgs = append(cmdArgs, cflags...)
+			logg.LogTo("OCR_TESSERACT", "cmdArgs: %v", cmdArgs)
+			// exec tesseract
+			cmd := exec.Command("tesseract", cmdArgs...)
+			output, err_exec := cmd.CombinedOutput()
+			if err_exec != nil {
+				logg.LogTo("OCR_TESSERACT", "Error exec tesseract: %v %v", err_exec, string(output))
+				return err_exec
+			}
+		}
+		return nil
+	})
+	if err_walk != nil {
+		logg.LogFatal("Error running command: %s.", err_walk)
 	}
 
-	outBytes, outFile, err := findAndReadOutfile(tmpOutFileBaseName, fileExtensions)
+	// outBytes, outFile, err := findAndReadOutfile(tmpOutCombinedPdf, fileExtensions)
 
-	// delete output file when we are done
-	defer os.Remove(outFile)
+	// // delete output file when we are done
+	// defer os.Remove(outFile)
 
-	if err != nil {
-		logg.LogTo("OCR_TESSERACT", "Error getting data from out file: %v", err)
-		return OcrResult{}, err
-	}
+	// if err != nil {
+	// 	logg.LogTo("OCR_TESSERACT", "Error getting data from out file: %v", err)
+	// 	return OcrResult{}, err
+	// }
 
 	return OcrResult{
-		Text:         string(outBytes),
-		BaseFileName: fmt.Sprintf("%v_ocrd", tmpOutFileBaseName),
+		// Text:         string(outBytes),
+		// BaseFileName: fmt.Sprintf("%v_ocrd", name),
 	}, nil
 
 }

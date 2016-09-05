@@ -75,7 +75,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	}
 	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_pdftk))
 
-	err_walk := filepath.Walk(tmpDir + "/", func(path string, f os.FileInfo, err error) error {
+	err_walk := filepath.Walk(tmpDir, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			logg.LogFatal("Error running command: %s.", err)
 		}
