@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -83,8 +82,6 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 		logg.LogTo("PREPROCESSOR_WORKER", "Path is: %s. Name is: %s.", path, f.Name())
 		matched, _ := regexp.MatchString("^.*?_[0-9]{3}\\.pdf", f.Name())
 		if matched {
-			reg := regexp.MustCompile("(^.*_|\\.pdf)")
-			i, _ := strconv.Atoi(reg.ReplaceAllString(f.Name(), ""))
 			out_imagemagick, err_imagemagick := exec.Command(
 				"convert",
 				"-density",
@@ -103,7 +100,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 				return err
 			}
 
-			ocrRequest.ImgFiles[i] = resultBytes
+			ocrRequest.ImgFiles = append(ocrRequest.ImgFiles, resultBytes)
 		}
 		return nil
 	})
