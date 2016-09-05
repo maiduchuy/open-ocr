@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -147,7 +146,7 @@ func (t TesseractEngine) tmpFilesFromImageFiles(ImgFiles [][]byte, name string) 
 	for index, element := range ImgFiles {
 	// index is the index where we are
 	// element is the element from someSlice for where we are
-		tmpFileName := filepath.Join(tmpDir, name + "_" + strconv.Itoa(index))
+		tmpFileName := filepath.Join(tmpDir, name + "_" + fmt.Sprintf("%03d", index))
 		logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
 
 		// we have to write the contents of the image url to a temp
@@ -183,9 +182,12 @@ func (t TesseractEngine) tmpFileFromImageUrl(imgUrl string) (string, error) {
 func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractEngineArgs, name string) (OcrResult, error) {
 
 	tmpDirOut, _ := ioutil.TempDir(os.TempDir(), "pages-")
+	defer os.RemoveAll(tmpDirOut)
 
 	// possible file extensions
 	// fileExtensions := []string{"pdf"}
+
+	var combinedArgs []string
 
 	// build args array
 	cflags := engineArgs.Export()
@@ -195,7 +197,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 			logg.LogFatal("Error running command: %s.", err)
 		}
 		logg.LogTo("OCR_TESSERACT", "Path is: %s. Name is: %s.", path, f.Name())
-		matched, _ := regexp.MatchString("^.*?_[0-9]*?$", f.Name())
+		matched, _ := regexp.MatchString("^.*?_[0-9]{3}$", f.Name())
 		if matched {
 			tmpFileOut := filepath.Join(tmpDirOut, f.Name())
 			cmdArgs := []string{path, tmpFileOut, "pdf"}
@@ -208,6 +210,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 				logg.LogTo("OCR_TESSERACT", "Error exec tesseract: %v %v", err_exec, string(output))
 				return err_exec
 			}
+			combinedArgs = append(combinedArgs, tmpFileOut + ".pdf")
 		}
 		return nil
 	})
@@ -215,50 +218,68 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 		logg.LogFatal("Error running command: %s.", err_walk)
 	}
 
+	tmpOutCombinedPdf, err := createTempFileName()
+	tmpOutCombinedPdf = fmt.Sprintf("%s.pdf", tmpOutCombinedPdf)
+	if err != nil {
+		return OcrResult{}, err
+	}
+	defer os.Remove(tmpOutCombinedPdf)
+
+	// allFileOut := filepath.Join(tmpDirOut, "*.pdf")
+
+	combinedArgs = append(combinedArgs, "cat", "output", tmpOutCombinedPdf)
+	logg.LogTo("OCR_TESSERACT", "combinedArgs: %v", combinedArgs)
+	out_pdftk, err_pdftk := exec.Command("pdftk", combinedArgs...).CombinedOutput()
+	if err_pdftk != nil {
+		logg.LogFatal("Error running command: %s.  out: %s", err_pdftk, out_pdftk)
+	}
+	logg.LogTo("OCR_TESSERACT", "output: %v", string(out_pdftk))
+
+	outBytes, err := ioutil.ReadFile(tmpOutCombinedPdf)
 	// outBytes, outFile, err := findAndReadOutfile(tmpOutCombinedPdf, fileExtensions)
 
-	// // delete output file when we are done
+	// delete output file when we are done
 	// defer os.Remove(outFile)
 
-	// if err != nil {
-	// 	logg.LogTo("OCR_TESSERACT", "Error getting data from out file: %v", err)
-	// 	return OcrResult{}, err
-	// }
+	if err != nil {
+		logg.LogTo("OCR_TESSERACT", "Error getting data from out file: %v", err)
+		return OcrResult{}, err
+	}
 
 	return OcrResult{
-		// Text:         string(outBytes),
-		// BaseFileName: fmt.Sprintf("%v_ocrd", name),
+		Text:         string(outBytes),
+		BaseFileName: fmt.Sprintf("%v_ocrd", name),
 	}, nil
 
 }
 
-func findOutfile(outfileBaseName string, fileExtensions []string) (string, error) {
+// func findOutfile(outfileBaseName string, fileExtensions []string) (string, error) {
 
-	for _, fileExtension := range fileExtensions {
+// 	for _, fileExtension := range fileExtensions {
 
-		outFile := fmt.Sprintf("%v.%v", outfileBaseName, fileExtension)
-		logg.LogTo("OCR_TESSERACT", "checking if exists: %v", outFile)
+// 		outFile := fmt.Sprintf("%v.%v", outfileBaseName, fileExtension)
+// 		logg.LogTo("OCR_TESSERACT", "checking if exists: %v", outFile)
 
-		if _, err := os.Stat(outFile); err == nil {
-			return outFile, nil
-		}
+// 		if _, err := os.Stat(outFile); err == nil {
+// 			return outFile, nil
+// 		}
 
-	}
+// 	}
 
-	return "", fmt.Errorf("Could not find outfile.  Basename: %v Extensions: %v", outfileBaseName, fileExtensions)
+// 	return "", fmt.Errorf("Could not find outfile.  Basename: %v Extensions: %v", outfileBaseName, fileExtensions)
 
-}
+// }
 
-func findAndReadOutfile(outfileBaseName string, fileExtensions []string) ([]byte, string, error) {
+// func findAndReadOutfile(outfileBaseName string, fileExtensions []string) ([]byte, string, error) {
 
-	outfile, err := findOutfile(outfileBaseName, fileExtensions)
-	if err != nil {
-		return nil, "", err
-	}
-	outBytes, err := ioutil.ReadFile(outfile)
-	if err != nil {
-		return nil, "", err
-	}
-	return outBytes, outfile, nil
+// 	outfile, err := findOutfile(outfileBaseName, fileExtensions)
+// 	if err != nil {
+// 		return nil, "", err
+// 	}
+// 	outBytes, err := ioutil.ReadFile(outfile)
+// 	if err != nil {
+// 		return nil, "", err
+// 	}
+// 	return outBytes, outfile, nil
 
-}
+// }
