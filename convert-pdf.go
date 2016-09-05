@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/couchbaselabs/logg"
 )
@@ -43,6 +44,8 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	)
 
 	tmpDir := createTempDir()
+	defer os.RemoveAll(tmpDir)
+
 	tmpDirFiles := fmt.Sprintf("%s/%s_%s.pdf", tmpDir, ocrRequest.Name, "%03d")
 	logg.LogTo(
 		"PREPROCESSOR_WORKER",
@@ -68,23 +71,27 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	}
 	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_pdftk))
 
-	defer os.RemoveAll(tmpDir)
-
-	out_imagemagick, err_imagemagick := exec.Command(
-		"convert",
-		"-density",
-		"300",
-		"-depth",
-		"8",
-		"-alpha",
-		"Off",
-		tmpFileNameInput,
-		tmpFileNameOutput,
-	).CombinedOutput()
-	if err != nil {
-		logg.LogFatal("Error running command: %s.  out: %s", err_imagemagick, out_imagemagick)
+	err_walk := filepath.Walk(tmpDir, func(path string, f os.FileInfo, err error) error {
+		out_imagemagick, err_imagemagick := exec.Command(
+			"convert",
+			"-density",
+			"300",
+			"-depth",
+			"8",
+			"-alpha",
+			"Off",
+			path,
+			tmpFileNameOutput,
+		).CombinedOutput()
+		if err != nil {
+			logg.LogFatal("Error running command: %s.  out: %s", err_imagemagick, out_imagemagick)
+		}
+		logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_imagemagick))
+		return nil
+	})
+	if err_walk != nil {
+		logg.LogFatal("Error running command: %s.", err_walk)
 	}
-	logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_imagemagick))
 
 	// read bytes from output file into ocrRequest.ImgBytes
 	resultBytes, err := ioutil.ReadFile(tmpFileNameOutput)
