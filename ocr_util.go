@@ -60,6 +60,7 @@ func createTempFileName() (string, error) {
 	return filepath.Join(tempDir, uuidStr), nil
 }
 
-func createTempDir() (string) {
-	return os.TempDir()
+func createTempDir() (string, error) {
+	tempDir := os.TempDir()
+	return ioutil.TempDir(tempDir, "pages_")
 }
