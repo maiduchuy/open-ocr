@@ -43,7 +43,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	)
 
 	tmpDir := createTempDir()
-	tmpDirFiles := fmt.Sprintf("%s/%s_%03d.pdf", tmpDir, ocrRequest.Name)
+	tmpDirFiles := fmt.Sprintf("%s/%s_%s.pdf", tmpDir, ocrRequest.Name, "%03d")
 	logg.LogTo(
 		"PREPROCESSOR_WORKER",
 		"Temp dir is: %s",
