@@ -44,7 +44,7 @@ func (ocrRequest *OcrRequest) downloadImgUrl() error {
 	ocrRequest.ImgBytes = bytes
 	u, _ := url.Parse(ocrRequest.ImgUrl)
 	path := u.Path
-	reg := regexp.MustCompile("(^/.*?_|\\..{3})")
+	reg := regexp.MustCompile("(^/|\\..{3})")
 	ocrRequest.Name = reg.ReplaceAllString(path, "")
 	ocrRequest.ImgUrl = ""
 	return nil
