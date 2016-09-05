@@ -86,7 +86,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 		if err != nil {
 			logg.LogFatal("Error running command: %s.  out: %s", err_imagemagick, out_imagemagick)
 		}
-		logg.LogTo("PREPROCESSOR_WORKER", "output: %v", string(out_imagemagick))
+		logg.LogTo("PREPROCESSOR_WORKER", "Path is: %s, Output: %v", path, string(out_imagemagick))
 		return nil
 	})
 	if err_walk != nil {
