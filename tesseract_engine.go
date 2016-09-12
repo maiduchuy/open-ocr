@@ -197,7 +197,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 			logg.LogFatal("Error running command: %s.", err)
 		}
 		logg.LogTo("OCR_TESSERACT", "Path is: %s. Name is: %s.", path, f.Name())
-		matched, _ := regexp.MatchString("^.*?_[0-9]{3}$", f.Name())
+		matched, _ := regexp.MatchString("^.*_[0-9]{3}$", f.Name())
 		if matched {
 			tmpFileOut := filepath.Join(tmpDirOut, f.Name())
 			cmdArgs := []string{path, tmpFileOut, "pdf"}

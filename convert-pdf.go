@@ -50,7 +50,8 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	tmpDirFiles := fmt.Sprintf("%s/%s_%s.pdf", tmpDir, ocrRequest.Name, "%03d")
+	// tmpDirFiles := fmt.Sprintf("%s/%s_%s.pdf", tmpDir, ocrRequest.Name, "%03d")
+	tmpDirFiles := fmt.Sprintf("%s/temppdf_%s.pdf", tmpDir, "%03d")
 	logg.LogTo(
 		"PREPROCESSOR_WORKER",
 		"Temp dir is: %s",
@@ -80,7 +81,7 @@ func (c ConvertPdf) preprocess(ocrRequest *OcrRequest) error {
 			logg.LogFatal("Error running command: %s.", err)
 		}
 		logg.LogTo("PREPROCESSOR_WORKER", "Path is: %s. Name is: %s.", path, f.Name())
-		matched, _ := regexp.MatchString("^.*?_[0-9]{3}\\.pdf", f.Name())
+		matched, _ := regexp.MatchString("^temppdf_[0-9]{3}\\.pdf", f.Name())
 		if matched {
 			out_imagemagick, err_imagemagick := exec.Command(
 				"convert",
