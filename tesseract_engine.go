@@ -142,11 +142,11 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 // }
 
 func (t TesseractEngine) tmpFilesFromImageFiles(ImgFiles [][]byte, name string) (string, error) {
-	tmpDir, _ := ioutil.TempDir(os.TempDir(), "pages-")
+	tmpDir, _ := ioutil.TempDir(os.TempDir(), "pages_")
 	for index, element := range ImgFiles {
 	// index is the index where we are
 	// element is the element from someSlice for where we are
-		tmpFileName := filepath.Join(tmpDir, name + "_" + fmt.Sprintf("%03d", index))
+		tmpFileName := filepath.Join(tmpDir, "temppdf_" + fmt.Sprintf("%03d", index))
 		logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
 
 		// we have to write the contents of the image url to a temp
@@ -181,7 +181,7 @@ func (t TesseractEngine) tmpFileFromImageUrl(imgUrl string) (string, error) {
 
 func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractEngineArgs, name string) (OcrResult, error) {
 
-	tmpDirOut, _ := ioutil.TempDir(os.TempDir(), "pages-")
+	tmpDirOut, _ := ioutil.TempDir(os.TempDir(), "pages_")
 	defer os.RemoveAll(tmpDirOut)
 
 	// possible file extensions
@@ -197,7 +197,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 			logg.LogFatal("Error running command: %s.", err)
 		}
 		logg.LogTo("OCR_TESSERACT", "Path is: %s. Name is: %s.", path, f.Name())
-		matched, _ := regexp.MatchString("^.*_[0-9]{3}$", f.Name())
+		matched, _ := regexp.MatchString("^temppdf_[0-9]{3}$", f.Name())
 		if matched {
 			tmpFileOut := filepath.Join(tmpDirOut, f.Name())
 			cmdArgs := []string{path, tmpFileOut, "pdf"}
