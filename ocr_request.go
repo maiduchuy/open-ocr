@@ -15,6 +15,7 @@ type OcrRequest struct {
 	PreprocessorChain []string               `json:"preprocessors"`
 	PreprocessorArgs  map[string]interface{} `json:"preprocessor-args"`
 	EngineArgs        map[string]interface{} `json:"engine_args"`
+	Bypass						bool
 
 	// decode ocr in http handler rather than putting in queue
 	InplaceDecode bool `json:"inplace_decode"`
@@ -41,6 +42,7 @@ func (ocrRequest *OcrRequest) downloadImgUrl() error {
 	if err != nil {
 		return err
 	}
+	checkOCR(bytes, ocrRequest)
 	ocrRequest.ImgBytes = bytes
 	u, _ := url.Parse(ocrRequest.ImgUrl)
 	path := u.Path

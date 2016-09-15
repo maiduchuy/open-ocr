@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"os/exec"
 
 	"github.com/nu7hatch/gouuid"
+	"github.com/couchbaselabs/logg"
 )
 
 func saveUrlContentToFileName(url, tmpFileName string) error {
@@ -63,4 +65,23 @@ func createTempFileName() (string, error) {
 func createTempDir() (string, error) {
 	tempDir := os.TempDir()
 	return ioutil.TempDir(tempDir, "pages_")
+}
+
+func checkOCR(bytes []byte, ocrRequest *OcrRequest) {
+	tmpFileName, err := createTempFileName()
+	if err != nil {
+		return
+	}
+
+	tmpFileName = tmpFileName + ".pdf"
+	err = ioutil.WriteFile(tmpFileName, bytes, os.ModeTemporary)
+	cmdArgs := []string{tmpFileName}
+
+	cmd := exec.Command("pdffonts", cmdArgs...)
+	output, err_exec := cmd.CombinedOutput()
+	if err_exec != nil {
+		logg.LogTo("OCR_TESSERACT", "Error exec pdffonts: %v %v", err_exec, string(output))
+		return
+	}
+	logg.LogTo("OCR_TESSERACT", "OCR checking result: %v", string(output))
 }
