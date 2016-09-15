@@ -144,9 +144,9 @@ func (t TesseractEngine) ProcessRequest(ocrRequest OcrRequest) (OcrResult, error
 func (t TesseractEngine) tmpFilesFromImageFiles(ImgFiles [][]byte, name string) (string, error) {
 	tmpDir, _ := ioutil.TempDir(os.TempDir(), "pages_")
 	for index, element := range ImgFiles {
-	// index is the index where we are
-	// element is the element from someSlice for where we are
-		tmpFileName := filepath.Join(tmpDir, "temppdf_" + fmt.Sprintf("%03d", index))
+		// index is the index where we are
+		// element is the element from someSlice for where we are
+		tmpFileName := filepath.Join(tmpDir, "temppdf_"+fmt.Sprintf("%03d", index))
 		logg.LogTo("OCR_TESSERACT", "Test: %s", tmpFileName)
 
 		// we have to write the contents of the image url to a temp
@@ -188,6 +188,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 	// fileExtensions := []string{"pdf"}
 
 	var combinedArgs []string
+	var compressedArgs []string
 
 	// build args array
 	cflags := engineArgs.Export()
@@ -210,7 +211,7 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 				logg.LogTo("OCR_TESSERACT", "Error exec tesseract: %v %v", err_exec, string(output))
 				return err_exec
 			}
-			combinedArgs = append(combinedArgs, tmpFileOut + ".pdf")
+			combinedArgs = append(combinedArgs, tmpFileOut+".pdf")
 		}
 		return nil
 	})
@@ -225,6 +226,13 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 	}
 	defer os.Remove(tmpOutCombinedPdf)
 
+	tmpOutCompressedPdf, err := createTempFileName()
+	tmpOutCompressedPdf = fmt.Sprintf("%s.pdf", tmpOutCompressedPdf)
+	if err != nil {
+		return OcrResult{}, err
+	}
+	defer os.Remove(tmpOutCompressedPdf)
+
 	// allFileOut := filepath.Join(tmpDirOut, "*.pdf")
 
 	combinedArgs = append(combinedArgs, "cat", "output", tmpOutCombinedPdf)
@@ -235,8 +243,25 @@ func (t TesseractEngine) processImageFile(tmpDirIn string, engineArgs TesseractE
 	}
 	logg.LogTo("OCR_TESSERACT", "output: %v", string(out_pdftk))
 
-	outBytes, err := ioutil.ReadFile(tmpOutCombinedPdf)
-	// outBytes, outFile, err := findAndReadOutfile(tmpOutCombinedPdf, fileExtensions)
+	compressedArgs = append(
+		compressedArgs,
+		"-sDEVICE=pdfwrite",
+		"-dCompatibilityLevel=1.4",
+		"-dPDFSETTINGS=/screen",
+		"-dNOPAUSE",
+		"-dBATCH",
+		"-dQUIET",
+		"-sOutputFile="+tmpOutCompressedPdf,
+		tmpOutCombinedPdf,
+	)
+
+	out_qpdf, err_qpdf := exec.Command("gs", compressedArgs...).CombinedOutput()
+	if err_qpdf != nil {
+		logg.LogFatal("Error running command: %s.  out: %s", err_qpdf, out_qpdf)
+	}
+
+	outBytes, err := ioutil.ReadFile(tmpOutCompressedPdf)
+	// outBytes, outFile, err := findAndReadOutfile(tmpOutCompressedPdf, fileExtensions)
 
 	// delete output file when we are done
 	// defer os.Remove(outFile)
