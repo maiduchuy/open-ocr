@@ -156,7 +156,7 @@ func (w *OcrRpcWorker) handle(deliveries <-chan amqp.Delivery, done chan error) 
 			break
 		}
 
-		ocrResult.Text = fmt.Sprintf("https://avid-documents.s3.amazonaws.com/%v.pdf", filepath.Base(ocrResult.BaseFileName))
+    ocrResult.Text = fmt.Sprintf("https://lumin-documents.s3.amazonaws.com/%v.pdf", filepath.Base(ocrResult.BaseFileName))
 
 		err = w.sendRpcResponse(ocrResult, d.ReplyTo, d.CorrelationId)
 		if err != nil {
@@ -208,7 +208,7 @@ func (w *OcrRpcWorker) uploadToS3(res OcrResult) error {
 		logg.LogTo("OCR_WORKER", "%v", err)
 		return err
 	}
-	client := s3.New(auth, aws.USEast)
+	client := s3.New(auth, aws.USWest2)
 
 	filePath := fmt.Sprintf("%v.pdf", filepath.Base(res.BaseFileName))
 
@@ -220,7 +220,7 @@ func (w *OcrRpcWorker) uploadToS3(res OcrResult) error {
 
 	defer os.Remove(filePath)
 
-	bucket := client.Bucket("avid-documents")
+	bucket := client.Bucket("lumin-documents")
 	err = bucket.Put(filePath, []byte(res.Text), "application/pdf", s3.PublicRead)
 	return err
 
